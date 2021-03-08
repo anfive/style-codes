@@ -2,7 +2,7 @@
 
 This Google Sheet file contains scripts that provide custom functions to work with (encode/decode) Style Codes:
 
-https://docs.google.com/spreadsheets/d/1pdy_-UQw_h0NvIQdKBk77XaIAOvfHBOWbTrDGGOZf5g
+[Style Codes Google Sheet Template](https://docs.google.com/spreadsheets/d/1pdy_-UQw_h0NvIQdKBk77XaIAOvfHBOWbTrDGGOZf5g)
 
 ## How to use the file
 
