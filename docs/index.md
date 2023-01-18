@@ -6,12 +6,15 @@ The Style Codes format and the utilities below have been developed by Andrea "An
 
 ## Working with Style Codes
 
-### Servizio App
+### Servizio Web App
 
-The [Servizio app](https://play.google.com/store/apps/details?id=it.gnah.nordic.servizio) for Android is the main tool to work with Style Codes. The app is designed to be used by a Style Judge to grade simultaneously the two athletes taking part in a duel. The app also provides a Decode function to convert a Style Code back into the original judgement.
-See the [Documentation for the Servizio app](servizio-app.md) for more information.
+The **Servizio web app** ([servizio.ludosportincom.org](https://servizio.ludosportincom.org))  is the main tool to work with Style Codes. The app is designed to be used by a Style Judge to grade simultaneously the two athletes taking part in a duel. The app also provides a Decode function to convert a Style Code back into the original judgement.
 
-![Screenshot of the Servizio app](images/app/servizio-0.png)
+The app can be used with the major browsers (on smartphone and PC) and can also be installed on Android, iOS, and on Windows.
+
+See the [Documentation for the Servizio web app](servizio-webapp.md) for more information.
+
+![Screenshot of the Servizio web app](images/webapp/servizio-0.png)
 
 ### Google Sheet Template
 

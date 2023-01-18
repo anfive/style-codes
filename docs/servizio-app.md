@@ -2,9 +2,11 @@
 
 The Servizio app for Android is a convenient tool for Style Judges to rate duels. The app computes the style score (and the encoding Style Code) for both athletes on the fly. It also provides a Decode function to decode Style Codes.
 
+**The app has been replaced by the [Servizio web app](servizio-webapp.md) which is now the recommended tool for style judges.**
+
 The app can be found on the Google Play Store here: https://play.google.com/store/apps/details?id=it.gnah.nordic.servizio
 
-The app is **for Android only**. There are **no plans** to implement the app for other platforms or systems.
+The app is **for Android only**. For other systems (but also for Android) it is recommended to use the [Servizio web app](servizio-webapp.md).
 
 ### How to use the app
 
