@@ -4,7 +4,7 @@ The Servizio web app is a convenient tool for Style Judges to rate duels. The ap
 
 The app can be found at [servizio.ludosportincom.org](https://servizio.ludosportincom.org) and it works with the major browsers. See below for browser support.
 
-The app is an evolution of the Android app [Servizio](servizio-app.md).
+The app is an evolution of the Android app [Servizio](servizio-app.md). The app was developed by Alessandro Luppi.
 
 ### Installing the app
 
