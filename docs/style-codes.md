@@ -66,7 +66,7 @@ Here follows a C-like pseudocode detailing the exact encoding used to generate t
         a = encode26((MOV * 3 + DIN) * 3 + GCC);
     } else if (SAPD < 2 && COM < 2 && DIF < 2) {
         // Two-letters format
-        value = (((((MOV * 4 + DIN) * 4 + GCC) * 4 + COM) * 2 + SAPD) * 2 + DIF);
+        value = (((((MOV * 4 + DIN) * 4 + GCC) * 2 + COM) * 2 + SAPD) * 2 + DIF);
         a = encode26(value / 23);
         b = encode23(value % 23);
     } else {
