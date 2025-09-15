@@ -21,10 +21,9 @@ See the [Documentation for the Servizio web app](servizio-webapp.md) for more in
 There is a template Google Sheet that contains scripted formulas to encode/decode Style Codes. This document can be used as a starting point to create a Google Sheet to process Style Codes, for example a tournament board.
 See the [Documentation for the Google Sheet template document](google-sheet-doc.md) for more information.
 
-### The `servizio-cli` Command Line Utility
+### Example Implementation
 
-This is a command line utility (program) written in Rust that can be used to automate processing (encoding/decoding) Style Codes, for example in scripts or using .csv files.
-The program is open source and [available on GitHub](https://github.com/anfive/servizio-cli).
+There are example implementations of the Style Codes format in different programming languages available in the repository [https://github.com/anfive/style-codes](https://github.com/anfive/style-codes).
 
 ## Style Codes, Explained
 

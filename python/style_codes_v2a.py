@@ -28,26 +28,44 @@ class StyleJudgementV2:
             self.sog == other.sog and \
             self.pen == other.pen
 
+_ALPHABET_23 = 'zyxwvutsrqpnmkjhgfedcba'
+_PEN_CODE = '0123456789abcdefghjkl'
+_DECODE_REGEX = re.compile('^(?P<a>[a-hj-km-np-z])(?P<b>[a-hj-km-np-z])?(?P<half_points>[0-9]{1,2})(?:(?P<c>[a-hj-km-np-z])?(?P<d>[a-hj-km-np-z])?(?P<e>[a-hj-km-np-z])?(?:(?P<sog>[0-3])?(?P<pen>[a-hj-km0-9])?)?)?$')
+
 def style_decode_v2a(code) -> StyleJudgementV2:
         if not code:
             raise Exception('Style code is empty')
         code = code.lower()
-        match = DECODE_REGEX.fullmatch(code)
+        match = _DECODE_REGEX.fullmatch(code)
         if match is None:
             raise Exception(f'Invalid style code {code}')
 
-        half_points = int(match.group('half_points'))
+        half_point_str = match.group('half_points')
+        if len(half_point_str) == 2 and half_point_str[0] == '0':
+            # Leading zero is not allowed
+            raise Exception(f'Invalid style code {code}')
+
+        half_points = int(half_point_str)
 
         sog = 0 if match.group('sog') is None else int(match.group('sog'))
-        pen = 0 if match.group('pen') is None else _decode_penalties(
-            match.group('pen'))
+        pen = 0 if match.group('pen') is None else _PEN_CODE.find(match.group('pen'))
 
         # Decode the encoded values from the regex groups
-        a_val = _decode23(match.group('a'))
-        b_val = 0 if match.group('b') is None else _decode23(match.group('b'))
-        c_val = 0 if match.group('c') is None else _decode23(match.group('c'))
-        d_val = 0 if match.group('d') is None else _decode23(match.group('d'))
-        e_val = 0 if match.group('e') is None else _decode23(match.group('e'))
+        e = match.group('e')
+        d = match.group('d')
+        c = match.group('c')
+        b = match.group('b')
+        a = match.group('a')
+
+        if e == 'z' or (e is None and (d == 'z' or (d is None and ((c == 'z' and sog == 0 and pen == 0) or (c is None and b == 'z'))))):
+            # Leading 'z's (zeros) are not allowed, unless as separator for SOG and PEN
+            raise Exception(f'Invalid style code {code}')
+
+        a_val = _ALPHABET_23.find(a)
+        b_val = 0 if b is None else _ALPHABET_23.find(b)
+        c_val = 0 if c is None else _ALPHABET_23.find(c)
+        d_val = 0 if d is None else _ALPHABET_23.find(d)
+        e_val = 0 if e is None else _ALPHABET_23.find(e)
 
         # Reconstruct the value from the encoded components
         value = a_val + b_val * 23 + c_val * 23 * 23 + d_val * 23 * 23 * 23 + e_val * 23 * 23 * 23 * 23
@@ -86,6 +104,8 @@ def style_decode_v2a(code) -> StyleJudgementV2:
 
         # Calculate bas_int from the total half_points
         bas_int = half_points - mov_int - din_int - com_int - sapd_int - gcc_int - dif_int
+        if bas_int < 0 or bas_int > 6:
+            raise Exception(f'Invalid style code {code}')
 
         # Convert to actual point values (divide by 2)
         bas = bas_int / 2
@@ -109,25 +129,6 @@ def style_decode_v2a(code) -> StyleJudgementV2:
         )
 
         return sty
-        
-_ALPHABET_23 = 'zyxwvutsrqpnmkjhgfedcba'
-def _decode23(value):
-    return _ALPHABET_23.find(value)
-
-def _encode23(value):
-    return _ALPHABET_23[value]
-
-_PEN_CODE = '0123456789abcdefghjkl'
-def _decode_penalties(value):
-    return _PEN_CODE.find(str(value))
-
-def _encode_penalties(value):
-    return _PEN_CODE[value]
-
-
-DECODE_REGEX = re.compile(
-    '^(?P<a>[a-hj-km-np-z])(?P<b>[a-hj-km-np-z])?(?P<half_points>[0-9]{1,2})(?:(?P<c>[a-hj-km-np-z])?(?P<d>[a-hj-km-np-z])?(?P<e>[a-hj-km-np-z])?(?:(?P<sog>[0-3])?(?P<pen>[0-9])?)?)?$')
-
 
 def _to_half_points(points : int) -> int:
     value = int(points * 2)
@@ -145,6 +146,10 @@ def style_encode_v2a(style : StyleJudgementV2) -> str:
     sapd_int = _to_half_points(style.sapd)
     gcc_int = _to_half_points(style.gcc)
     dif_int = _to_half_points(style.dif)
+    if style.sog < 0 or style.sog > 3:
+        raise Exception(f'Invalid value in SOG (must be within 0 and 3): {style.sog}')
+    if style.pen < 0 or style.pen > 20:
+        raise Exception(f'Invalid value in PEN (must be within 0 and 20): {style.pen}')
 
     mov_low_digit = mov_int % 3
     mov_high_digit = mov_int // 3
@@ -172,51 +177,58 @@ def style_encode_v2a(style : StyleJudgementV2) -> str:
     value = value // 23
     e_val = value % 23
 
-    e = _encode23(e_val) if e_val != 0 else ''
-    d = _encode23(d_val) if d_val != 0 or e != '' else ''
-    c = _encode23(c_val) if c_val != 0 or d != '' else ''
-    b = _encode23(b_val) if b_val != 0 or c != '' else ''
-    a = _encode23(a_val)
+    e = _ALPHABET_23[e_val] if e_val != 0 else ''
+    d = _ALPHABET_23[d_val] if d_val != 0 or e != '' else ''
+    c = _ALPHABET_23[c_val] if c_val != 0 or d != '' else ''
+    b = _ALPHABET_23[b_val] if b_val != 0 or c != '' else ''
+    a = _ALPHABET_23[a_val]
 
-    pen = '' if style.pen == 0 else _encode_penalties(style.pen)
+    pen = '' if style.pen == 0 else _PEN_CODE[style.pen]
     sog = '' if style.sog == 0 and pen == '' else str(style.sog)
     if sog != '' and c == '':
-        c = 'a'
+        c = 'z'
 
     half_points = bas_int + mov_int + din_int + com_int + sapd_int + gcc_int + dif_int
     points = str(half_points)
-    return a + b + points + c + d + e + pen + sog
+    return a + b + points + c + d + e + sog + pen
 
 if __name__ == '__main__':
-    # Run test
-    codes = {}
-    count = 0
-    for sapd in range(0, 7):
-        for dif in range(0, 7):
-            for com in range(0, 7):
-                for din in range(0, 7):
-                    for gcc in range(0, 7):
-                        for mov in range(0, 7):
-                            for bas in range(0, 7):
-                                sty = StyleJudgementV2(bas / 2, mov / 2, din / 2, com / 2, sapd / 2, gcc / 2, dif / 2, 0, 0)
-                                encoded = style_encode_v2a(sty)
-                                if encoded in codes:
-                                    raise Exception(f'Code collision: {encoded} is already used')
-                                codes[encoded] = str(sty)
-                                decoded = style_decode_v2a(encoded)
-                                if decoded != sty:
-                                    raise Exception(f'Code {encoded} decoded to {decoded}, expected {sty}')
-                                count += 1
+    print('Running style codes v2a test...')
 
-    expected = 7 ** 7
+    # Run test
+    count = 0
+    dump_codes = True
+    for pen in [0, 1, 10]:
+        for sog in range(0, 4):
+            print(f'PEN: {pen}, SOG: {sog}')
+            codes = {}
+            for sapd in range(0, 7):
+                for dif in range(0, 7):
+                    for com in range(0, 7):
+                        for din in range(0, 7):
+                            for gcc in range(0, 7):
+                                for mov in range(0, 7):
+                                    for bas in range(0, 7):
+                                        sty = StyleJudgementV2(bas / 2, mov / 2, din / 2, com / 2, sapd / 2, gcc / 2, dif / 2, sog, pen)
+                                        encoded = style_encode_v2a(sty)
+                                        if encoded in codes:
+                                            raise Exception(f'Code collision: {encoded} is already used')
+                                        codes[encoded] = str(sty)
+                                        decoded = style_decode_v2a(encoded)
+                                        if decoded != sty:
+                                            raise Exception(f'Code {encoded} decoded to {decoded}, expected {sty}')
+                                        count += 1
+            if dump_codes:
+                import json
+                import os
+                os.makedirs('out', exist_ok=True)
+                file_name = f'out/style_codes_v2a_python_pen={pen}_sog={sog}.json'
+                with open(file_name, 'w', newline='\n') as f:
+                    json.dump(codes, f, indent=4)
+                print(f'Codes dumped to {file_name}')
+
+    expected = (7 ** 7) * 3 * 4
     if count != expected:
         raise Exception(f'Count is {count}, expected {expected}')
 
     print(f'Test passed. {count} codes checked.')
-
-    dump_codes = True
-    if dump_codes:
-        import json
-        with open('style_codes_v2a.json', 'w') as f:
-            json.dump(codes, f, indent=2)
-        

@@ -38,9 +38,9 @@ The main interface of the app is represented in the picture below.
 
 The interface can be used to rate both athletes in a duel at the same time. The left part of the interface refers to the first athlete, while the right part refers to the second athlete.
 
-Pressing the buttons marked with a **+** sign adds a point in the corresponding category for the corresponding athlete. The Style score and Style Code is automatically updated when a point is added.
+Pressing the buttons marked with a **+** sign adds half a point (for Technical coefficients, in blue) or a point (for `SOG` and `PEN`) for the corresponding athlete. The Style score and Style Code is automatically updated when a point is added.
 
-The first 8 categories (all except `PEN`) have a minimum value of 0 and a maximum value of 3. Pressing the corresponding **+** button again when the value is 3 will reset the value to zero.
+The first 8 categories (all except `PEN`) have a minimum value of 0 and a maximum value of 3. Pressing the corresponding **+** button again when the value is 3 will reset the value to zero. **Long-pressing** the **+** button will remove half a point or a point (for Technical coefficients and `SOG` respectively). Long-pressing when the value is zero will set the value to the maximum.
 
 The `PEN` category has a maximum value of 20, which also wraps back to zero. To reset the `PEN` value to zero quickly, long-press (hold) the corresponding **+** button for a few seconds.
 
@@ -52,7 +52,7 @@ Press the `DECODE` button to enter Decode mode.
 
 Decode mode allows decoding a Style Code into the original judgement (combination of points in the 9 categories). Enter the alphanumeric code in the text field to decode it automatically, if it corresponds to a valid style code.
 
-Press the `CLEAR` button to clear the entered Style Code. Press the *back* button on your device to return to the main interface.
+Press the `CLEAR` button to clear the entered Style Code. Press the *back* button on your device or the `BACK` button in the UI to return to the main interface.
 
 ![Decode mode](images/webapp/servizio-1.png)
 

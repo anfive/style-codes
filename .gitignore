@@ -1,0 +1,4 @@
+style_codes*.json
+__pycache__
+node_modules
+out/
