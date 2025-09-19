@@ -41,7 +41,7 @@ class StyleJudgementV2 {
 
 const ALPHABET_23 = 'zyxwvutsrqpnmkjhgfedcba';
 const PEN_CODE = '0123456789abcdefghjkm';
-const DECODE_REGEX = /^(?<a>[a-hj-km-np-z])(?<b>[a-hj-km-np-z])?(?<half_points>[0-9]{1,2})(?:(?<c>[a-hj-km-np-z])?(?<d>[a-hj-km-np-z])?(?<e>[a-hj-km-np-z])?(?:(?<sog>[0-3])?(?<pen>[a-hj-km0-9])?)?)?$/;
+const DECODE_REGEX = /^(?<a>[a-hj-km-np-z])(?<b>[a-hj-km-np-z])?(?<half_points>[0-9]{1,2})(?:(?<c>[a-hj-km-np-z])?(?<d>[a-hj-km-np-z])?(?:(?<sog>[0-3])(?<pen>[a-hj-km1-9])?)?)?$/;
 
 function styleDecodeV2a(code: string): StyleJudgementV2 {
     if (!code) {
@@ -57,14 +57,17 @@ function styleDecodeV2a(code: string): StyleJudgementV2 {
 
     const sog = match.groups!.sog === undefined ? 0 : parseInt(match.groups!.sog);
     const pen = match.groups!.pen === undefined ? 0 : PEN_CODE.indexOf(match.groups!.pen);
+    if (match.groups!.sog === '0' && match.groups!.pen === undefined) {
+        // SOG 0 must be omitted if PEN is not present
+        throw new Error(`Invalid style code ${code}`);
+    }
 
-    const e = match.groups!.e ?? '';
     const d = match.groups!.d ?? '';
     const c = match.groups!.c ?? '';
     const b = match.groups!.b ?? '';
     const a = match.groups!.a;
 
-    if (e === 'z' || (e === '' && (d === 'z' || (d === '' && (c === 'z' && sog === 0 && pen === 0) || (c === '' && b === 'z'))))) {
+    if (d === 'z' || (d === '' && ((c === 'z' && sog === 0 && pen === 0) || ((c === '' || c === 'z') && b === 'z')))) {
         // Leading 'z's (zeros) are not allowed, unless as separator for SOG and PEN
         throw new Error(`Invalid style code ${code}`);
     }
@@ -74,13 +77,15 @@ function styleDecodeV2a(code: string): StyleJudgementV2 {
     const bVal = b === '' ? 0 : decode23(b);
     const cVal = c === '' ? 0 : decode23(c);
     const dVal = d === '' ? 0 : decode23(d);
-    const eVal = e === '' ? 0 : decode23(e);
 
     // Reconstruct the value from the encoded components
-    let value = aVal + bVal * 23 + cVal * 23 * 23 + dVal * 23 * 23 * 23 + eVal * 23 * 23 * 23 * 23;
+    let value = aVal + bVal * 23 + cVal * 23 * 23 + dVal * 23 * 23 * 23;
 
     // Invert the formula step by step (highest order terms first)
     const difInt = Math.floor(value / (3 * 3 * 3 * 3 * 3 * 3 * 7 * 7));
+    if (difInt > 6) {
+        throw new Error(`Invalid style code ${code}`);
+    }
     value = value % (3 * 3 * 3 * 3 * 3 * 3 * 7 * 7);
 
     const sapdInt = Math.floor(value / (3 * 3 * 3 * 3 * 3 * 3 * 7));
@@ -110,6 +115,9 @@ function styleDecodeV2a(code: string): StyleJudgementV2 {
     const movInt = movLowDigit + movHighDigit * 3;
     const dinInt = dinLowDigit + dinHighDigit * 3;
     const gccInt = gccLowDigit + gccHighDigit * 3;
+    if (movInt > 6 || dinInt > 6 || gccInt > 6) {
+        throw new Error(`Invalid style code ${code}`);
+    }
 
     // Calculate bas_int from the total half_points
     const basInt = halfPoints - movInt - dinInt - comInt - sapdInt - gccInt - difInt;
@@ -189,11 +197,8 @@ function styleEncodeV2a(style: StyleJudgementV2): string {
     const c_val = value % 23
     value = Math.floor(value / 23)
     const d_val = value % 23
-    value = Math.floor(value / 23)
-    const e_val = value % 23
 
-    const e = e_val === 0 ? '' : ALPHABET_23[e_val]
-    const d = d_val === 0 && e === '' ? '' : ALPHABET_23[d_val]
+    const d = d_val === 0 ? '' : ALPHABET_23[d_val]
     const c = c_val === 0 && d === '' ? '' : ALPHABET_23[c_val]
     const b = b_val === 0 && c === '' ? '' : ALPHABET_23[b_val]
     const a = ALPHABET_23[a_val]
@@ -207,7 +212,7 @@ function styleEncodeV2a(style: StyleJudgementV2): string {
     }
 
     const points = basInt + movInt + dinInt + comInt + sapdInt + gccInt + difInt;
-    return a + b + points.toString() + cFinal + d + e + sog + pen;
+    return a + b + points.toString() + cFinal + d + sog + pen;
 }
 
 function main(): void {

@@ -42,8 +42,8 @@ class StyleJudgementV2 {
 }
 
 const ALPHABET_23 = 'zyxwvutsrqpnmkjhgfedcba';
-const PEN_CODE = '0123456789abcdefghjkl';
-const DECODE_REGEX = '/^(?P<a>[a-hj-km-np-z])(?P<b>[a-hj-km-np-z])?(?P<half_points>[0-9]{1,2})(?:(?P<c>[a-hj-km-np-z])?(?P<d>[a-hj-km-np-z])?(?P<e>[a-hj-km-np-z])?(?:(?P<sog>[0-3])?(?P<pen>[a-hj-km0-9])?)?)?$/';
+const PEN_CODE = '0123456789abcdefghjkm';
+const DECODE_REGEX = '/^(?P<a>[a-hj-km-np-z])(?P<b>[a-hj-km-np-z])?(?P<half_points>[0-9]{1,2})(?:(?P<c>[a-hj-km-np-z])(?P<d>[a-hj-km-np-z])?(?:(?P<sog>[0-3])(?P<pen>[a-hj-km1-9])?)?)?$/';
 
 function styleDecodeV2a($code) {
     if (!$code) {
@@ -64,15 +64,21 @@ function styleDecodeV2a($code) {
 
     $sog = isset($matches['sog']) ? intval($matches['sog']) : 0;
     $pen = isset($matches['pen']) ? strpos(PEN_CODE, $matches['pen']) : 0;
+    if (isset($matches['sog']) && $sog === 0 && $pen === 0) {
+        // SOG 0 must be omitted if PEN is not present
+        throw new Exception("Invalid style code $code");
+    }
 
-    $e = $matches['e'] ?? '';
     $d = $matches['d'] ?? '';
     $c = $matches['c'] ?? '';
     $b = $matches['b'] ?? '';
     $a = $matches['a'];
 
-    if ($e === 'z' || ($e === '' && ($d === 'z' || ($d === '' && (($c === 'z' && $sog === 0 && $pen === 0) || ($c === '' && $b === 'z')))))) {
+    if ($d === 'z' || ($d === '' && (($c === 'z' && $sog === 0 && $pen === 0) || (($c === '' || $c === 'z') && $b === 'z')))) {
         // Leading 'z's (zeros) are not allowed, unless as separator for SOG and PEN
+        throw new Exception("Invalid style code $code");
+    }
+    if ($b === '' && (($c !== '' && $c !== 'z') || $d !== '')) {
         throw new Exception("Invalid style code $code");
     }
 
@@ -81,13 +87,15 @@ function styleDecodeV2a($code) {
     $bVal = $b ? strpos(ALPHABET_23, $b) : 0;
     $cVal = $c ? strpos(ALPHABET_23, $c) : 0;
     $dVal = $d ? strpos(ALPHABET_23, $d) : 0;
-    $eVal = $e ? strpos(ALPHABET_23, $e) : 0;
 
     // Reconstruct the value from the encoded components
-    $value = $aVal + $bVal * 23 + $cVal * 23 * 23 + $dVal * 23 * 23 * 23 + $eVal * 23 * 23 * 23 * 23;
+    $value = $aVal + $bVal * 23 + $cVal * 23 * 23 + $dVal * 23 * 23 * 23;
 
     // Invert the formula step by step (highest order terms first)
     $difInt = intval($value / (3 * 3 * 3 * 3 * 3 * 3 * 7 * 7));
+    if ($difInt > 6) {
+        throw new Exception("Invalid style code $code");
+    }
     $value = $value % (3 * 3 * 3 * 3 * 3 * 3 * 7 * 7);
     
     $sapdInt = intval($value / (3 * 3 * 3 * 3 * 3 * 3 * 7));
@@ -117,6 +125,9 @@ function styleDecodeV2a($code) {
     $movInt = $movLowDigit + $movHighDigit * 3;
     $dinInt = $dinLowDigit + $dinHighDigit * 3;
     $gccInt = $gccLowDigit + $gccHighDigit * 3;
+    if ($movInt > 6 || $dinInt > 6 || $gccInt > 6) {
+        throw new Exception("Invalid style code $code");
+    }
 
     // Calculate bas_int from the total half_points
     $basInt = $halfPoints - $movInt - $dinInt - $comInt - $sapdInt - $gccInt - $difInt;
@@ -199,11 +210,8 @@ function styleEncodeV2a($style) {
     $cVal = $value % 23;
     $value = intval($value / 23);
     $dVal = $value % 23;
-    $value = intval($value / 23);
-    $eVal = $value % 23;
 
-    $e = $eVal !== 0 ? ALPHABET_23[$eVal] : '';
-    $d = $dVal !== 0 || $e !== '' ? ALPHABET_23[$dVal] : '';
+    $d = $dVal !== 0 ? ALPHABET_23[$dVal] : '';
     $c = $cVal !== 0 || $d !== '' ? ALPHABET_23[$cVal] : '';
     $b = $bVal !== 0 || $c !== '' ? ALPHABET_23[$bVal] : '';
     $a = ALPHABET_23[$aVal];
@@ -216,7 +224,7 @@ function styleEncodeV2a($style) {
 
     $halfPoints = $basInt + $movInt + $dinInt + $comInt + $sapdInt + $gccInt + $difInt;
     $points = strval($halfPoints);
-    return $a . $b . $points . $c . $d . $e . $sog . $pen;
+    return $a . $b . $points . $c . $d . $sog . $pen;
 }
 
 // Main execution function

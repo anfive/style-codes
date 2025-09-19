@@ -29,8 +29,8 @@ class StyleJudgementV2:
             self.pen == other.pen
 
 _ALPHABET_23 = 'zyxwvutsrqpnmkjhgfedcba'
-_PEN_CODE = '0123456789abcdefghjkl'
-_DECODE_REGEX = re.compile('^(?P<a>[a-hj-km-np-z])(?P<b>[a-hj-km-np-z])?(?P<half_points>[0-9]{1,2})(?:(?P<c>[a-hj-km-np-z])?(?P<d>[a-hj-km-np-z])?(?P<e>[a-hj-km-np-z])?(?:(?P<sog>[0-3])?(?P<pen>[a-hj-km0-9])?)?)?$')
+_PEN_CODE = '0123456789abcdefghjkm'
+_DECODE_REGEX = re.compile('^(?P<a>[a-hj-km-np-z])(?P<b>[a-hj-km-np-z])?(?P<half_points>[0-9]{1,2})(?:(?P<c>[a-hj-km-np-z])(?P<d>[a-hj-km-np-z])?(?:(?P<sog>[0-3])(?P<pen>[a-hj-km1-9])?)?)?$')
 
 def style_decode_v2a(code) -> StyleJudgementV2:
         if not code:
@@ -49,29 +49,34 @@ def style_decode_v2a(code) -> StyleJudgementV2:
 
         sog = 0 if match.group('sog') is None else int(match.group('sog'))
         pen = 0 if match.group('pen') is None else _PEN_CODE.find(match.group('pen'))
+        if match.group('sog') == '0' and match.group('pen') is None:
+            # SOG 0 must be omitted if PEN is not present
+            raise Exception(f'Invalid style code {code}')
 
         # Decode the encoded values from the regex groups
-        e = match.group('e')
         d = match.group('d')
         c = match.group('c')
         b = match.group('b')
         a = match.group('a')
 
-        if e == 'z' or (e is None and (d == 'z' or (d is None and ((c == 'z' and sog == 0 and pen == 0) or (c is None and b == 'z'))))):
+        if d == 'z' or (d is None and ((c == 'z' and sog == 0 and pen == 0) or ((c is None or c == 'z') and b == 'z'))):
             # Leading 'z's (zeros) are not allowed, unless as separator for SOG and PEN
+            raise Exception(f'Invalid style code {code}')
+        if b is None and ((c is not None and c != 'z') or d is not None):
             raise Exception(f'Invalid style code {code}')
 
         a_val = _ALPHABET_23.find(a)
         b_val = 0 if b is None else _ALPHABET_23.find(b)
         c_val = 0 if c is None else _ALPHABET_23.find(c)
         d_val = 0 if d is None else _ALPHABET_23.find(d)
-        e_val = 0 if e is None else _ALPHABET_23.find(e)
 
         # Reconstruct the value from the encoded components
-        value = a_val + b_val * 23 + c_val * 23 * 23 + d_val * 23 * 23 * 23 + e_val * 23 * 23 * 23 * 23
+        value = a_val + b_val * 23 + c_val * 23 * 23 + d_val * 23 * 23 * 23
 
         # Invert the formula step by step (highest order terms first)
         dif_int = value // (3 * 3 * 3 * 3 * 3 * 3 * 7 * 7)
+        if dif_int > 6:
+            raise Exception(f'Invalid style code {code}')
         value = value % (3 * 3 * 3 * 3 * 3 * 3 * 7 * 7)
         
         sapd_int = value // (3 * 3 * 3 * 3 * 3 * 3 * 7)
@@ -94,13 +99,15 @@ def style_decode_v2a(code) -> StyleJudgementV2:
         
         gcc_low_digit = value // 3
         value = value % 3
-        
+
         mov_low_digit = value
 
         # Reconstruct the original integer values
         mov_int = mov_low_digit + mov_high_digit * 3
         din_int = din_low_digit + din_high_digit * 3
         gcc_int = gcc_low_digit + gcc_high_digit * 3
+        if mov_int > 6 or din_int > 6 or gcc_int > 6:
+            raise Exception(f'Invalid style code {code}')
 
         # Calculate bas_int from the total half_points
         bas_int = half_points - mov_int - din_int - com_int - sapd_int - gcc_int - dif_int
@@ -175,10 +182,9 @@ def style_encode_v2a(style : StyleJudgementV2) -> str:
     value = value // 23
     d_val = value % 23
     value = value // 23
-    e_val = value % 23
+    assert value == 0
 
-    e = _ALPHABET_23[e_val] if e_val != 0 else ''
-    d = _ALPHABET_23[d_val] if d_val != 0 or e != '' else ''
+    d = _ALPHABET_23[d_val] if d_val != 0 else ''
     c = _ALPHABET_23[c_val] if c_val != 0 or d != '' else ''
     b = _ALPHABET_23[b_val] if b_val != 0 or c != '' else ''
     a = _ALPHABET_23[a_val]
@@ -190,7 +196,7 @@ def style_encode_v2a(style : StyleJudgementV2) -> str:
 
     half_points = bas_int + mov_int + din_int + com_int + sapd_int + gcc_int + dif_int
     points = str(half_points)
-    return a + b + points + c + d + e + sog + pen
+    return a + b + points + c + d + sog + pen
 
 if __name__ == '__main__':
     print('Running style codes v2a test...')

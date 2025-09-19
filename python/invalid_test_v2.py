@@ -22,6 +22,15 @@ def check_invalid(valid, code_chars):
             pass
         raise Exception(f'Invalid code {code} was erroneously decoded to {decoded}')
 
+def monte_carlo_loop(valid, id):
+    count = 0
+    while True:
+        code_chars = [random.randint(0, len(CHARS) - 1) for _ in range(LENGTH)]
+        check_invalid(valid, code_chars)
+        count += 1
+        if count % 100000 == 0:
+            print(f'Process {id}: {count} checked')
+
 def test_invalid(exhaustive):
 
     print('Generating all valid codes with zero SOG and PEN...')
@@ -66,13 +75,24 @@ def test_invalid(exhaustive):
                 break
     else:
         print ('Running Monte Carlo test')
-        count = 0
-        while True:
-            code_chars = [random.randint(0, len(CHARS) - 1) for _ in range(LENGTH)]
-            check_invalid(valid, code_chars)
-            count += 1
-            if count % 100000 == 0:
-                print(f'{count} checked')
+
+        import multiprocessing
+        processes = []
+        for i in range(8):
+            process = multiprocessing.Process(target=monte_carlo_loop, args=(valid, i))
+            processes.append(process)
+            process.start()
+
+        # install signal handler to join processes on SIGINT
+        def signal_handler(signum, frame):
+            for process in processes:
+                process.terminate()
+            exit(0)
+        import signal
+        signal.signal(signal.SIGINT, signal_handler)
+
+        for process in processes:
+            process.join()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run invalid style codes tests')
